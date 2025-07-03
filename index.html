@@ -1,0 +1,1187 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Churras Lagoinha - Cardápio Digital</title>
+    <link rel="icon" type="image/png" href="https://i.imgur.com/KxbLDpF.png">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .custom-scrollbar::-webkit-scrollbar { width: 8px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #f1f1f1; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #888; border-radius: 10px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #555; }
+        
+        .fade-in { animation: fadeIn 0.3s ease-in-out; }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: scale(0.95); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        .add-to-cart-btn, #floating-cart-btn, #ai-helper-btn {
+            transition: transform 0.1s ease-in-out, background-color 0.2s;
+        }
+        .add-to-cart-btn:active, #floating-cart-btn:active, #ai-helper-btn:active {
+            transform: scale(0.92);
+        }
+        .modal-overlay {
+            background-color: rgba(0, 0, 0, 0.6);
+        }
+        .spinner {
+            border: 2px solid rgba(0, 0, 0, 0.1);
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            border-left-color: #fff;
+            animation: spin 1s ease-in-out infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .filter-btn.active {
+            background-color: #f97316; /* orange-500 */
+            color: white;
+        }
+    </style>
+</head>
+<body class="bg-gray-100">
+
+    <!-- Header -->
+    <header class="bg-gray-800 shadow-md sticky top-0 z-20">
+        <div class="container mx-auto px-4 py-2 flex justify-between items-center">
+             <img src="https://i.imgur.com/KxbLDpF.png" alt="Churras Lagoinha Logo" class="h-16" onerror="this.onerror=null; this.src='https://placehold.co/200x50/1f2937/white?text=Churras+Lagoinha';">
+             <button id="more-info-btn" class="text-white font-semibold py-2 px-4 border border-white rounded-full hover:bg-white hover:text-gray-800 transition-colors">
+                 Mais <i class="fa-solid fa-ellipsis-v ml-2"></i>
+             </button>
+        </div>
+    </header>
+
+    <!-- Filter and Search Bar -->
+    <nav class="bg-white shadow-sm sticky top-[80px] z-10">
+        <div class="container mx-auto p-2 flex flex-col sm:flex-row items-center gap-4">
+            <div id="category-filters" class="flex-shrink-0 flex items-center gap-2 overflow-x-auto pb-2 sm:pb-0">
+                <!-- Filter buttons will be injected here -->
+            </div>
+            <div class="relative w-full sm:w-auto sm:flex-grow">
+                <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                <input type="search" id="search-input" placeholder="Buscar no cardápio..." class="w-full pl-10 pr-4 py-2 border rounded-full bg-gray-100 focus:bg-white focus:outline-none focus:ring-2 focus:ring-orange-500">
+            </div>
+        </div>
+    </nav>
+
+
+    <main class="container mx-auto p-4">
+        <div id="product-list" class="grid grid-cols-3 gap-4 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
+            <!-- Products will be injected here -->
+        </div>
+    </main>
+
+    <!-- Floating Buttons -->
+    <div class="fixed bottom-6 right-6 space-y-4 z-30">
+        <button id="ai-helper-btn" class="bg-blue-500 text-white rounded-full h-16 w-16 flex items-center justify-center shadow-lg transform hover:scale-110 transition-transform" title="Ajuda para escolher">
+            <i class="fa-solid fa-question text-2xl"></i>
+        </button>
+        <button id="floating-cart-btn" class="bg-orange-500 text-white rounded-full h-16 w-16 flex items-center justify-center shadow-lg transform hover:scale-110 transition-transform" title="Ver carrinho">
+            <i class="fa-solid fa-cart-shopping text-2xl"></i>
+            <span id="cart-count-badge" class="absolute -top-1 -right-1 bg-red-600 text-white text-xs font-bold rounded-full h-6 w-6 flex items-center justify-center border-2 border-white">0</span>
+        </button>
+    </div>
+
+    <!-- Cart Modal -->
+    <div id="cart-modal" class="modal-overlay fixed inset-0 flex items-center justify-center z-40 hidden p-4">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-md fade-in flex flex-col" style="height: 90vh; max-height: 600px;">
+            <div class="p-6 flex justify-between items-center border-b">
+                <h2 class="text-2xl font-bold text-gray-800">Seu Pedido</h2>
+                <button id="close-cart-btn" class="text-2xl text-gray-500 hover:text-gray-800">&times;</button>
+            </div>
+            <div id="cart-items" class="p-6 flex-grow overflow-y-auto custom-scrollbar"></div>
+            <div id="cart-empty-message" class="text-center py-12 flex-grow flex flex-col justify-center items-center">
+                <i class="fa-solid fa-bag-shopping text-5xl text-gray-300 mb-4"></i>
+                <p class="text-gray-500 text-lg">Seu carrinho está vazio.</p>
+            </div>
+            <div id="cart-total-section" class="p-6 border-t hidden">
+                 <button id="suggestion-btn" class="w-full bg-indigo-500 hover:bg-indigo-600 text-white font-bold py-3 rounded-lg transition-colors duration-300 mb-4 flex items-center justify-center">
+                    <span id="suggestion-btn-text">✨ Sugestão do Chef</span>
+                </button>
+                <div class="flex justify-between items-center text-xl font-bold mb-6">
+                    <span>Total</span>
+                    <span id="cart-total">R$ 0,00</span>
+                </div>
+                <button id="checkout-btn" class="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-3 rounded-lg transition-colors duration-300">
+                    Finalizar Pedido <i class="fa-solid fa-arrow-right ml-2"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- More Info Modal -->
+    <div id="more-info-modal" class="modal-overlay fixed inset-0 flex items-center justify-center z-50 hidden p-4">
+        <div class="bg-white rounded-xl shadow-2xl p-6 w-full max-w-md fade-in">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-2xl font-bold text-gray-800">Sobre o Churras Lagoinha</h2>
+                <button id="close-more-info-btn" class="text-2xl text-gray-500 hover:text-gray-800">&times;</button>
+            </div>
+            <div class="text-gray-700 space-y-4">
+                <p>Tradicional desde 2005, o Churras Lagoinha é o point ideal para jantar no bairro ou pedir em casa. Oferecemos espetinhos variados na brasa, jantinhas completas, caldos, porções e muito mais em um ambiente familiar e descontraído.</p>
+                <div>
+                    <h3 class="font-bold text-lg mb-1">📍 Localização & Funcionamento</h3>
+                    <p>Av. Nero Macedo, 569 – Setor Lagoinha, Goiânia</p>
+                    <p>Segunda a Sábado, das 18h30 às 23h30</p>
+                </div>
+                <div class="flex flex-col sm:flex-row gap-3 mt-4">
+                    <a href="https://www.google.com/maps/dir/?api=1&destination=Churras+Lagoinha+(espetinho,+jantinha,+caldos,+bar,+grill,+steakhouse+e+cia),+Av.+Nero+Macedo,+569,+Setor+Lagoinha,+Goiânia" target="_blank" class="flex-1 text-center bg-blue-500 text-white font-bold py-3 px-4 rounded-lg hover:bg-blue-600 transition-colors"><i class="fa-solid fa-map-location-dot mr-2"></i>Como Chegar</a>
+                    <a href="https://wa.me/5562984710639" target="_blank" class="flex-1 text-center bg-green-500 text-white font-bold py-3 px-4 rounded-lg hover:bg-green-600 transition-colors"><i class="fa-brands fa-whatsapp mr-2"></i>WhatsApp</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- AI Helper Modal -->
+    <div id="ai-helper-modal" class="modal-overlay fixed inset-0 flex items-center justify-center z-50 hidden p-4">
+        <div class="bg-white rounded-xl shadow-2xl p-6 w-full max-w-sm fade-in">
+            <!-- Initial State -->
+            <div id="ai-helper-initial-state">
+                <h2 class="text-2xl font-bold text-center mb-2">Precisa de ajuda?</h2>
+                <p class="text-center text-gray-600 mb-4">Me diga o que você está com vontade de comer hoje e eu te darei a melhor sugestão!</p>
+                <textarea id="ai-helper-input" rows="3" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="Ex: 'Quero uma carne suculenta' ou 'Algo leve para hoje'..."></textarea>
+                <div class="mt-4 flex space-x-4">
+                     <button type="button" id="cancel-ai-helper-btn" class="w-1/2 bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-3 rounded-lg">Cancelar</button>
+                     <button type="button" id="submit-ai-helper-btn" class="w-1/2 bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 rounded-lg flex items-center justify-center">
+                        <span id="ai-helper-submit-text">Sugerir</span>
+                     </button>
+                </div>
+            </div>
+            <!-- Loading & Result State -->
+            <div id="ai-helper-result-state" class="hidden text-center">
+                 <div id="ai-helper-loading-view">
+                    <div class="spinner mx-auto" style="width: 48px; height: 48px; border-width: 4px;"></div>
+                    <p class="text-lg text-gray-600 mt-4">Avaliando opções...</p>
+                 </div>
+                 <div id="ai-helper-suggestion-view" class="hidden">
+                    <h2 class="text-xl font-bold text-center mb-4">Minha sugestão para você:</h2>
+                    <p id="ai-helper-result-text" class="text-lg mb-4 p-4 bg-orange-50 rounded-lg"></p>
+                    <div id="ai-helper-result-buttons" class="mt-4 flex flex-col space-y-2">
+                       <!-- Buttons will be injected here -->
+                    </div>
+                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Variations Modal -->
+    <div id="variations-modal" class="modal-overlay fixed inset-0 flex items-center justify-center z-50 hidden p-4">
+        <div class="bg-white rounded-xl shadow-2xl p-6 w-full max-w-sm fade-in">
+            <h2 id="variation-product-name" class="text-2xl font-bold text-center mb-4">Escolha uma opção</h2>
+            <div id="variations-list" class="space-y-2 mb-6 max-h-[50vh] overflow-y-auto custom-scrollbar"></div>
+            <div id="variation-buttons" class="flex space-x-4"></div>
+        </div>
+    </div>
+
+    <!-- Checkout Modal -->
+    <div id="checkout-modal" class="modal-overlay fixed inset-0 flex items-center justify-center z-50 hidden p-4">
+        <div class="bg-white rounded-xl shadow-2xl p-8 w-full max-w-md fade-in">
+            <h2 class="text-2xl font-bold text-center mb-6">Quase lá!</h2>
+            <form id="checkout-form">
+                <div class="mb-4">
+                    <label for="customer-name" class="block text-sm font-medium text-gray-700 mb-1">Seu Nome</label>
+                    <input type="text" id="customer-name" required class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500" placeholder="Digite seu nome completo">
+                </div>
+                <div class="mb-4">
+                    <label for="customer-phone" class="block text-sm font-medium text-gray-700 mb-1">Seu Telefone (opcional)</label>
+                    <input type="tel" id="customer-phone" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500" placeholder="(XX) XXXXX-XXXX">
+                </div>
+                 <div class="mb-4">
+                    <label for="order-notes" class="block text-sm font-medium text-gray-700 mb-1">Observações para a Cozinha?</label>
+                    <textarea id="order-notes" rows="2" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500" placeholder="Ex: sem cebola, ponto da carne, etc."></textarea>
+                </div>
+                <div class="mb-6">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Forma de Pagamento</label>
+                    <div class="grid grid-cols-2 gap-3">
+                        <label>
+                            <input type="radio" name="payment-method" value="Pix" class="sr-only peer" checked>
+                            <div class="p-3 border rounded-lg text-center cursor-pointer peer-checked:bg-orange-500 peer-checked:text-white peer-checked:border-orange-500">Pix</div>
+                        </label>
+                        <label>
+                            <input type="radio" name="payment-method" value="Dinheiro" class="sr-only peer">
+                            <div class="p-3 border rounded-lg text-center cursor-pointer peer-checked:bg-orange-500 peer-checked:text-white peer-checked:border-orange-500">Dinheiro</div>
+                        </label>
+                        <label>
+                            <input type="radio" name="payment-method" value="Cartão de Crédito" class="sr-only peer">
+                            <div class="p-3 border rounded-lg text-center cursor-pointer peer-checked:bg-orange-500 peer-checked:text-white peer-checked:border-orange-500">Crédito</div>
+                        </label>
+                        <label>
+                            <input type="radio" name="payment-method" value="Cartão de Débito" class="sr-only peer">
+                            <div class="p-3 border rounded-lg text-center cursor-pointer peer-checked:bg-orange-500 peer-checked:text-white peer-checked:border-orange-500">Débito</div>
+                        </label>
+                    </div>
+                </div>
+                <div class="mb-6">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Onde será o consumo?</label>
+                    <div class="flex space-x-4">
+                        <label class="flex-1">
+                            <input type="radio" name="order-type" value="local" class="sr-only peer" checked>
+                            <div class="p-4 border rounded-lg text-center cursor-pointer peer-checked:bg-orange-500 peer-checked:text-white peer-checked:border-orange-500">No Local</div>
+                        </label>
+                        <label class="flex-1">
+                            <input type="radio" name="order-type" value="entrega" class="sr-only peer">
+                            <div class="p-4 border rounded-lg text-center cursor-pointer peer-checked:bg-orange-500 peer-checked:text-white peer-checked:border-orange-500">Entrega</div>
+                        </label>
+                    </div>
+                </div>
+                <div id="delivery-info" class="hidden bg-blue-50 border-l-4 border-blue-400 p-4 rounded-r-lg mb-6 text-sm text-blue-800">
+                    <p class="font-bold">Atenção para Entregas:</p>
+                    <ul class="list-disc list-inside mt-2">
+                        <li>Entregamos apenas via <strong>iFood</strong>.</li>
+                        <li>Você pode solicitar um <strong>Uber Flash ou 99Pop</strong> para retirar.</li>
+                        <li><strong>Importante:</strong> Não nos responsabilizamos pela entrega via motorista de aplicativo solicitado pelo cliente.</li>
+                    </ul>
+                </div>
+                <div class="flex space-x-4">
+                    <button type="button" id="cancel-checkout-btn" class="w-1/2 bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-3 rounded-lg">Voltar</button>
+                    <button type="submit" class="w-1/2 bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 rounded-lg">Confirmar Pedido</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Confirmation Modal -->
+    <div id="confirmation-modal" class="modal-overlay fixed inset-0 flex items-center justify-center z-50 hidden p-4">
+        <div class="bg-white rounded-xl shadow-2xl p-8 w-full max-w-lg fade-in">
+             <h2 class="text-2xl font-bold text-center mb-2">Pedido Pronto para Envio!</h2>
+             <p class="text-center text-gray-600 mb-6">Confira e envie para a cozinha via WhatsApp.</p>
+             <div class="bg-gray-50 p-4 rounded-lg border max-h-[40vh] overflow-y-auto custom-scrollbar">
+                <pre id="whatsapp-message" class="whitespace-pre-wrap text-sm text-gray-800"></pre>
+             </div>
+             <a id="send-whatsapp-btn" target="_blank" class="block w-full bg-green-500 hover:bg-green-600 text-white font-bold py-4 rounded-lg mt-4 transition-colors text-lg text-center">
+                <i class="fa-brands fa-whatsapp mr-3 text-2xl"></i> Enviar para a Cozinha
+            </a>
+            <button id="close-confirmation-btn" class="w-full mt-3 text-gray-600 hover:text-black font-medium py-2 rounded-lg">Fechar</button>
+        </div>
+    </div>
+    
+    <!-- Suggestion Result Modal -->
+    <div id="suggestion-result-modal" class="modal-overlay fixed inset-0 flex items-center justify-center z-50 hidden p-4">
+        <div class="bg-white rounded-xl shadow-2xl p-6 w-full max-w-sm fade-in text-center">
+            <p id="suggestion-result-text" class="text-lg mb-4"></p>
+            <div id="suggestion-result-buttons" class="flex space-x-4"></div>
+        </div>
+    </div>
+
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // --- DATA ---
+            const products = [
+                // Carnes com Variações
+                { 
+                    id: 1, name: 'Alcatra', category: 'Carnes', image: 'https://placehold.co/300x200/f87171/white?text=Alcatra',
+                    variants: [
+                        { id: '1a', name: 'Só Espeto', price: 10.50 }, { id: '1b', name: 'Simples', price: 15.49 },
+                        { id: '1c', name: 'Especial', price: 19.49 }, { id: '1d', name: 'Jantinha Completa', price: 21.49 }
+                    ]
+                },
+                { 
+                    id: 2, name: 'Alcatra com Bacon', category: 'Carnes', image: 'https://placehold.co/300x200/f87171/white?text=Alcatra+c/+Bacon',
+                    variants: [
+                        { id: '2a', name: 'Só Espeto', price: 10.50 }, { id: '2b', name: 'Simples', price: 15.49 },
+                        { id: '2c', name: 'Especial', price: 19.49 }, { id: '2d', name: 'Jantinha Completa', price: 21.49 }
+                    ]
+                },
+                { 
+                    id: 3, name: 'Carne de Sol', category: 'Carnes', image: 'https://placehold.co/300x200/f87171/white?text=Carne+de+Sol',
+                    variants: [
+                        { id: '3a', name: 'Só Espeto', price: 11.50 }, { id: '3b', name: 'Simples', price: 16.49 },
+                        { id: '3c', name: 'Especial', price: 20.49 }, { id: '3d', name: 'Jantinha Completa', price: 22.49 }
+                    ]
+                },
+                { 
+                    id: 4, name: 'Contra-filé', category: 'Carnes', image: 'https://placehold.co/300x200/f87171/white?text=Contra-filé',
+                    variants: [
+                        { id: '4a', name: 'Só Espeto', price: 12.99 }, { id: '4b', name: 'Simples', price: 17.98 },
+                        { id: '4c', name: 'Especial', price: 21.98 }, { id: '4d', name: 'Jantinha Completa', price: 23.98 }
+                    ]
+                },
+                { 
+                    id: 5, name: 'Coração', category: 'Carnes', image: 'https://placehold.co/300x200/f87171/white?text=Coração',
+                    variants: [
+                        { id: '5a', name: 'Só Espeto', price: 10.50 }, { id: '5b', name: 'Simples', price: 15.49 },
+                        { id: '5c', name: 'Especial', price: 19.49 }, { id: '5d', name: 'Jantinha Completa', price: 21.49 }
+                    ]
+                },
+                { 
+                    id: 6, name: 'Cupim', category: 'Carnes', image: 'https://placehold.co/300x200/f87171/white?text=Cupim',
+                    variants: [
+                        { id: '6a', name: 'Só Espeto', price: 10.99 }, { id: '6b', name: 'Simples', price: 15.98 },
+                        { id: '6c', name: 'Especial', price: 19.98 }, { id: '6d', name: 'Jantinha Completa', price: 21.98 }
+                    ]
+                },
+                { 
+                    id: 7, name: 'Frango com Bacon', category: 'Carnes', image: 'https://placehold.co/300x200/f87171/white?text=Frango+c/Bacon',
+                    variants: [
+                        { id: '7a', name: 'Só Espeto', price: 9.50 }, { id: '7b', name: 'Simples', price: 14.49 },
+                        { id: '7c', name: 'Especial', price: 18.49 }, { id: '7d', name: 'Jantinha Completa', price: 20.49 }
+                    ]
+                },
+                { 
+                    id: 8, name: 'Frango sem Bacon', category: 'Carnes', image: 'https://placehold.co/300x200/f87171/white?text=Frango+s/Bacon',
+                    variants: [
+                        { id: '8a', name: 'Só Espeto', price: 8.50 }, { id: '8b', name: 'Simples', price: 13.49 },
+                        { id: '8c', name: 'Especial', price: 17.49 }, { id: '8d', name: 'Jantinha Completa', price: 19.49 }
+                    ]
+                },
+                { 
+                    id: 9, name: 'Kafta (bovina ou frango)', category: 'Carnes', image: 'https://placehold.co/300x200/f87171/white?text=Kafta',
+                    variants: [
+                        { id: '9a', name: 'Só Espeto', price: 12.99 }, { id: '9b', name: 'Simples', price: 17.98 },
+                        { id: '9c', name: 'Especial', price: 21.98 }, { id: '9d', 'name': 'Jantinha Completa', price: 23.98 }
+                    ]
+                },
+                { 
+                    id: 10, name: 'Lombo Suíno', category: 'Carnes', image: 'https://placehold.co/300x200/f87171/white?text=Lombo+Suíno',
+                    variants: [
+                        { id: '10a', name: 'Só Espeto', price: 9.50 }, { id: '10b', name: 'Simples', price: 14.49 },
+                        { id: '10c', name: 'Especial', price: 18.49 }, { id: '10d', name: 'Jantinha Completa', price: 20.49 }
+                    ]
+                },
+                { 
+                    id: 11, name: 'Linguiça Suína', category: 'Carnes', image: 'https://placehold.co/300x200/f87171/white?text=Linguiça+Suína',
+                    variants: [
+                        { id: '11a', name: 'Só Espeto', price: 10.99 }, { id: '11b', name: 'Simples', price: 15.98 },
+                        { id: '11c', name: 'Especial', price: 19.98 }, { id: '11d', name: 'Jantinha Completa', price: 21.98 }
+                    ]
+                },
+                { 
+                    id: 12, name: 'Meio da Asa', category: 'Carnes', image: 'https://placehold.co/300x200/f87171/white?text=Meio+da+Asa',
+                    variants: [
+                        { id: '12a', name: 'Só Espeto', price: 9.50 }, { id: '12b', name: 'Simples', price: 14.49 },
+                        { id: '12c', name: 'Especial', price: 18.49 }, { id: '12d', name: 'Jantinha Completa', price: 20.49 }
+                    ]
+                },
+                { 
+                    id: 13, name: 'Picanha', category: 'Carnes', image: 'https://placehold.co/300x200/f87171/white?text=Picanha',
+                    variants: [
+                        { id: '13a', name: 'Só Espeto', price: 13.99 }, { id: '13b', name: 'Simples', price: 18.99 },
+                        { id: '13c', name: 'Especial', price: 22.99 }, { id: '13d', name: 'Jantinha Completa', price: 24.99 }
+                    ]
+                },
+                { 
+                    id: 14, name: 'Picanha Montada', category: 'Carnes', image: 'https://placehold.co/300x200/f87171/white?text=Picanha+Montada',
+                    variants: [
+                        { id: '14a', name: 'Só Espeto', price: 9.99 }, { id: '14b', name: 'Simples', price: 14.98 },
+                        { id: '14c', name: 'Especial', price: 18.98 }, { id: '14d', name: 'Jantinha Completa', price: 20.98 }
+                    ]
+                },
+                { 
+                    id: 15, name: 'Queijo Provolone', category: 'Carnes', image: 'https://placehold.co/300x200/f87171/white?text=Queijo+Provolone',
+                    variants: [
+                        { id: '15a', name: 'Só Espeto', price: 8.50 }, { id: '15b', name: 'Simples', price: 13.49 },
+                        { id: '15c', name: 'Especial', price: 17.49 }, { id: '15d', name: 'Jantinha Completa', price: 19.49 }
+                    ]
+                },
+                { 
+                    id: 16, name: 'Queijo Coalho', category: 'Carnes', image: 'https://placehold.co/300x200/f87171/white?text=Queijo+Coalho',
+                    variants: [
+                        { id: '16a', name: 'Só Espeto', price: 8.50 }, { id: '16b', name: 'Simples', price: 13.49 },
+                        { id: '16c', name: 'Especial', price: 17.49 }, { id: '16d', name: 'Jantinha Completa', price: 19.49 }
+                    ]
+                },
+                { 
+                    id: 17, name: 'Cupim Premium (200g)', category: 'Carnes', image: 'https://placehold.co/300x200/ef4444/white?text=Cupim+Premium',
+                    variants: [
+                        { id: '17a', name: 'Só Espeto', price: 23.50 }, { id: '17b', name: 'Simples', price: 27.49 },
+                        { id: '17c', name: 'Especial', price: 31.49 }, { id: '17d', name: 'Jantinha Completa', price: 33.49 }
+                    ]
+                },
+                { 
+                    id: 18, name: 'Carne de Sol Premium (200g)', category: 'Carnes', image: 'https://placehold.co/300x200/ef4444/white?text=Carne+Sol+Premium',
+                    variants: [
+                        { id: '18a', name: 'Só Espeto', price: 25.00 }, { id: '18b', name: 'Simples', price: 29.00 },
+                        { id: '18c', name: 'Especial', price: 33.00 }, { id: '18d', name: 'Jantinha Completa', price: 35.00 }
+                    ]
+                },
+                { 
+                    id: 19, name: 'Contra-filé Premium (200g)', category: 'Carnes', image: 'https://placehold.co/300x200/ef4444/white?text=Contra-filé+Premium',
+                    variants: [
+                        { id: '19a', name: 'Só Espeto', price: 24.99 }, { id: '19b', name: 'Simples', price: 29.98 },
+                        { id: '19c', name: 'Especial', price: 33.98 }, { id: '19d', name: 'Jantinha Completa', price: 35.98 }
+                    ]
+                },
+                { 
+                    id: 20, name: 'Picanha Premium (200g)', category: 'Carnes', image: 'https://placehold.co/300x200/ef4444/white?text=Picanha+Premium',
+                    variants: [
+                        { id: '20a', name: 'Só Espeto', price: 26.99 }, { id: '20b', name: 'Simples', price: 31.98 },
+                        { id: '20c', name: 'Especial', price: 35.98 }, { id: '20d', name: 'Jantinha Completa', price: 37.98 }
+                    ]
+                },
+                { 
+                    id: 21, name: 'Picanha na Chapa (600g)', category: 'Carnes', image: 'https://placehold.co/300x200/ef4444/white?text=Picanha+na+Chapa',
+                    variants: [
+                        { id: '21a', name: 'Com Acompanhamento', price: 95.50 }, { id: '21b', name: 'Sem Acompanhamento', price: 72.99 }
+                    ]
+                },
+                { 
+                    id: 22, name: 'Super Jantinha (serve 3)', category: 'Carnes', image: 'https://placehold.co/300x200/ef4444/white?text=Super+Jantinha',
+                    variants: [
+                        { id: '22a', name: 'Espeto Premium de Picanha', price: 65.99 }, { id: '22b', name: 'Espeto Premium de Cupim', price: 60.99 },
+                        { id: '22c', name: 'Espeto Premium de Carne de Sol', price: 58.99 }, { id: '22d', name: 'Espeto Premium de Contra-filé', price: 62.99 }
+                    ]
+                },
+
+                // Porções e Pratos
+                { 
+                    id: 50, name: 'Costela de Caranha', category: 'Porções', image: 'https://placehold.co/300x200/60a5fa/white?text=Costela+de+Caranha',
+                    variants: [
+                        { id: '50a', name: 'Pequena', price: 45.00 }, { id: '50b', name: 'Média', price: 50.00 },
+                        { id: '50c', name: 'Grande', price: 55.00 }
+                    ]
+                },
+                { 
+                    id: 51, name: 'Filé de Tilápia', category: 'Porções', image: 'https://placehold.co/300x200/60a5fa/white?text=Filé+de+Tilápia',
+                    variants: [
+                        { id: '51a', name: '250 gramas', price: 40.00 }, { id: '51b', name: '500 gramas', price: 60.00 }
+                    ]
+                },
+                { 
+                    id: 52, name: 'Salada de Repolho Especial', category: 'Porções', image: 'https://placehold.co/300x200/4ade80/white?text=Salada',
+                    variants: [
+                        { id: '52a', name: 'Pequena', price: 8.00 }, { id: '52b', name: 'Grande', price: 10.00 }
+                    ]
+                },
+                { id: 53, name: 'Torresmo Avulso', price: 8.00, category: 'Porções', image: 'https://placehold.co/300x200/eab308/white?text=Torresmo' },
+                { 
+                    id: 54, name: 'Batata Frita', category: 'Porções', image: 'https://placehold.co/300x200/fbbf24/white?text=Batata+Frita',
+                    variants: [
+                        { id: '54a', name: 'Pequena', price: 17.90 }, { id: '54b', name: 'Grande', price: 25.90 }
+                    ]
+                },
+                { id: 55, name: 'Adicional de Bacon e Cheddar', price: 3.50, category: 'Porções', image: 'https://placehold.co/300x200/fbbf24/white?text=Adicional' },
+                { 
+                    id: 56, name: 'Caldos', category: 'Porções', image: 'https://placehold.co/300x200/f97316/white?text=Caldo',
+                    multiStepVariants: {
+                        steps: [ { title: 'Escolha o Sabor', type: 'flavor' }, { title: 'Escolha o Tamanho', type: 'size' } ],
+                        options: {
+                            flavor: [ { id: 'frango', name: 'Frango c/ Milho' }, { id: 'feijao', name: 'Feijão' }, { id: 'vaca_atolada', name: 'Vaca Atolada' } ],
+                            size: [ { id: 'pequeno', name: 'Pequeno (300ml)', price: 13.99 }, { id: 'grande', name: 'Grande (500ml)', price: 18.99 }, { id: 'levar', name: 'p/ Levar (500ml)', price: 19.99 } ]
+                        }
+                    }
+                },
+                 { 
+                    id: 57, name: 'Galinhada', category: 'Porções', image: 'https://placehold.co/300x200/34d399/white?text=Galinha',
+                    variants: [
+                        { id: '57a', name: '1 pessoa', price: 15.99 }, { id: '57b', name: '2 pessoas', price: 28.99 }
+                    ]
+                },
+                { id: 58, name: 'Discos (Consulte disponibilidade)', price: 0, category: 'Porções', image: 'https://placehold.co/300x200/9ca3af/white?text=Discos' },
+
+                // Acompanhamentos
+                { 
+                    id: 70, name: 'Arroz', category: 'Acompanhamentos', image: 'https://placehold.co/300x200/f5f5f5/black?text=Arroz',
+                    variants: [ { id: '70a', name: 'Pequeno', price: 9.00 }, { id: '70b', name: 'Grande', price: 18.00 } ]
+                },
+                { 
+                    id: 71, name: 'Feijão Tropeiro', category: 'Acompanhamentos', image: 'https://placehold.co/300x200/d2b48c/white?text=Feijão+Tropeiro',
+                    variants: [ { id: '71a', name: 'Pequeno', price: 8.99 }, { id: '71b', name: 'Grande', price: 15.99 } ]
+                },
+                { 
+                    id: 72, name: 'Vinagrete', category: 'Acompanhamentos', image: 'https://placehold.co/300x200/e53e3e/white?text=Vinagrete',
+                    variants: [ { id: '72a', name: 'Pequeno', price: 9.00 }, { id: '72b', name: 'Grande', price: 18.00 } ]
+                },
+                { 
+                    id: 73, name: 'Mandioca', category: 'Acompanhamentos', image: 'https://placehold.co/300x200/f6e05e/black?text=Mandioca',
+                    variants: [ { id: '73a', name: 'Pequeno', price: 8.99 }, { id: '73b', name: 'Grande', price: 18.00 } ]
+                },
+                
+                // Bebidas
+                { id: 110, name: 'Heineken 600ml', price: 14.50, category: 'Bebidas', image: 'https://placehold.co/300x200/86efac/white?text=Cerveja' },
+                { id: 111, name: 'Amstel 600ml', price: 11.99, category: 'Bebidas', image: 'https://placehold.co/300x200/86efac/white?text=Cerveja' },
+                { id: 112, name: 'Antarctica Original 600ml', price: 13.99, category: 'Bebidas', image: 'https://placehold.co/300x200/86efac/white?text=Cerveja' },
+                { id: 113, name: 'Antarctica 600ml', price: 11.99, category: 'Bebidas', image: 'https://placehold.co/300x200/86efac/white?text=Cerveja' },
+                { id: 114, name: 'Heineken long neck', price: 9.50, category: 'Bebidas', image: 'https://placehold.co/300x200/86efac/white?text=Cerveja' },
+                { id: 115, name: 'Sol long neck', price: 8.99, category: 'Bebidas', image: 'https://placehold.co/300x200/86efac/white?text=Cerveja' },
+                { id: 116, name: 'Antarctica Profissa 300ml', price: 6.99, category: 'Bebidas', image: 'https://placehold.co/300x200/86efac/white?text=Cerveja' },
+                { id: 117, name: 'Heineken zero long neck', price: 9.50, category: 'Bebidas', image: 'https://placehold.co/300x200/86efac/white?text=Cerveja' },
+                { id: 118, name: 'Budweiser long neck', price: 8.99, category: 'Bebidas', image: 'https://placehold.co/300x200/86efac/white?text=Cerveja' },
+                { id: 120, name: 'Antarctica (lata)', price: 5.99, category: 'Bebidas', image: 'https://placehold.co/300x200/a3a3a3/white?text=Cerveja' },
+                { id: 121, name: 'Skol (lata)', price: 5.99, category: 'Bebidas', image: 'https://placehold.co/300x200/a3a3a3/white?text=Cerveja' },
+                { id: 122, name: 'Brahma Duplo Malte (lata)', price: 5.99, category: 'Bebidas', image: 'https://placehold.co/300x200/a3a3a3/white?text=Cerveja' },
+                { id: 123, name: 'Amstel (lata)', price: 5.99, category: 'Bebidas', image: 'https://placehold.co/300x200/a3a3a3/white?text=Cerveja' },
+                { 
+                    id: 130, name: 'Refrigerante', category: 'Bebidas', image: 'https://placehold.co/300x200/a3a3a3/white?text=Refrigerante',
+                    variants: [
+                        { id: '130a', name: 'Lata', price: 5.50 }, { id: '130b', name: '600ml', price: 8.50 },
+                        { id: '130c', name: 'Coca-Cola 1L', price: 8.99 }, { id: '130d', name: 'Guaraná 1L', price: 6.99 },
+                        { id: '130e', name: 'Coca-Cola 2L', price: 15.99 }, { id: '130f', name: 'Mineiro 2L', price: 11.99 }
+                    ]
+                },
+                { 
+                    id: 131, name: 'Suco (Polpa)', category: 'Bebidas', image: 'https://placehold.co/300x200/fca5a5/white?text=Suco',
+                    multiStepVariants: {
+                        steps: [ { title: 'Escolha o Sabor', type: 'flavor' }, { title: 'Escolha o Tamanho', type: 'size' } ],
+                        options: {
+                            flavor: [ { id: 'acerola', name: 'Acerola' }, { id: 'cupuacu', name: 'Cupuaçu' }, { id: 'graviola', name: 'Graviola' }, { id: 'caju_couve', name: 'Caju c/ Couve' }, { id: 'goiaba', name: 'Goiaba' }, { id: 'maracuja', name: 'Maracujá' }, { id: 'abacaxi', name: 'Abacaxi' }, { id: 'morango', name: 'Morango' }, { id: 'tamarindo', name: 'Tamarindo' }, { id: 'uva', name: 'Uva' }, { id: 'manga', name: 'Manga' }, { id: 'caju', name: 'Caju' } ],
+                            size: [ { id: 'copo', name: '400ml (copo)', price: 8.50 }, { id: 'jarra', name: '700ml (jarra)', price: 15.90 } ]
+                        }
+                    }
+                },
+                { 
+                    id: 132, name: 'Suco de Laranja', category: 'Bebidas', image: 'https://placehold.co/300x200/fca5a5/white?text=Suco+de+Laranja',
+                    variants: [
+                        { id: '132a', name: '500ml', price: 9.90 }, { id: '132b', name: '1L', price: 18.90 }
+                    ]
+                },
+                { id: 140, name: 'Preparo Cozumel', price: 5.99, category: 'Bebidas', image: 'https://placehold.co/300x200/a3a3a3/white?text=Diversos' },
+                { id: 141, name: 'Energético 270ml', price: 9.00, category: 'Bebidas', image: 'https://placehold.co/300x200/a3a3a3/white?text=Diversos' },
+                { id: 142, name: 'H2O / Limoneto 500ml', price: 5.99, category: 'Bebidas', image: 'https://placehold.co/300x200/a3a3a3/white?text=Diversos' },
+                { id: 143, name: 'Água s/ Gás 500ml', price: 3.50, category: 'Bebidas', image: 'https://placehold.co/300x200/a3a3a3/white?text=Diversos' },
+                { id: 144, name: 'Água c/ Gás 500ml', price: 4.50, category: 'Bebidas', image: 'https://placehold.co/300x200/a3a3a3/white?text=Diversos' },
+                { id: 145, name: 'Água Tônica 350ml', price: 5.50, category: 'Bebidas', image: 'https://placehold.co/300x200/a3a3a3/white?text=Diversos' },
+                { id: 146, name: 'Dose de Pinga', price: 4.00, category: 'Bebidas', image: 'https://placehold.co/300x200/a3a3a3/white?text=Diversos' },
+            ];
+            
+            let cart = [];
+            let variationState = {};
+            let aiHelperState = {
+                userInput: '',
+                suggestions: []
+            };
+            let currentFilterCategory = 'Todos';
+            let currentSearchTerm = '';
+
+            // --- DOM ELEMENTS ---
+            const productList = document.getElementById('product-list');
+            const categoryFilters = document.getElementById('category-filters');
+            const searchInput = document.getElementById('search-input');
+            const cartItems = document.getElementById('cart-items');
+            const cartTotal = document.getElementById('cart-total');
+            const cartCountBadge = document.getElementById('cart-count-badge');
+            const cartEmptyMessage = document.getElementById('cart-empty-message');
+            const cartTotalSection = document.getElementById('cart-total-section');
+            const checkoutBtn = document.getElementById('checkout-btn');
+            const floatingCartBtn = document.getElementById('floating-cart-btn');
+            const suggestionBtn = document.getElementById('suggestion-btn');
+            const aiHelperBtn = document.getElementById('ai-helper-btn');
+            const moreInfoBtn = document.getElementById('more-info-btn');
+            
+            const cartModal = document.getElementById('cart-modal');
+            const variationsModal = document.getElementById('variations-modal');
+            const checkoutModal = document.getElementById('checkout-modal');
+            const confirmationModal = document.getElementById('confirmation-modal');
+            const suggestionResultModal = document.getElementById('suggestion-result-modal');
+            const aiHelperModal = document.getElementById('ai-helper-modal');
+            const moreInfoModal = document.getElementById('more-info-modal');
+            const allModals = [cartModal, variationsModal, checkoutModal, confirmationModal, suggestionResultModal, aiHelperModal, moreInfoModal];
+
+            const closeCartBtn = document.getElementById('close-cart-btn');
+            const variationsList = document.getElementById('variations-list');
+            const variationButtons = document.getElementById('variation-buttons');
+            const variationProductName = document.getElementById('variation-product-name');
+            
+            // AI Helper Modal Elements
+            const aiHelperInitialState = document.getElementById('ai-helper-initial-state');
+            const aiHelperResultState = document.getElementById('ai-helper-result-state');
+            const aiHelperLoadingView = document.getElementById('ai-helper-loading-view');
+            const aiHelperSuggestionView = document.getElementById('ai-helper-suggestion-view');
+            const aiHelperSubmitBtn = document.getElementById('submit-ai-helper-btn');
+            const aiHelperCancelBtn = document.getElementById('cancel-ai-helper-btn');
+
+            // --- FUNCTIONS ---
+            const formatCurrency = (value) => `R$ ${value.toFixed(2).replace('.', ',')}`;
+
+            const getVariantDescription = (variantName) => {
+                const descriptions = {
+                    'Simples': 'Espeto + Mandioca',
+                    'Especial': 'Espeto + Mandioca, Feijão tropeiro e Vinagrete',
+                    'Jantinha Completa': 'Espeto + Mandioca, Feijão tropeiro, Vinagrete e Arroz'
+                };
+                return descriptions[variantName] || '';
+            };
+
+            const renderFilters = () => {
+                const categories = ['Todos', 'Carnes', 'Porções', 'Acompanhamentos', 'Bebidas'];
+                categoryFilters.innerHTML = '';
+                categories.forEach(category => {
+                    const btn = document.createElement('button');
+                    btn.className = 'filter-btn px-4 py-2 rounded-full text-sm font-semibold whitespace-nowrap transition-colors';
+                    btn.textContent = category;
+                    btn.dataset.category = category;
+                    if (category === 'Todos') {
+                        btn.classList.add('active');
+                    }
+                    categoryFilters.appendChild(btn);
+                });
+            };
+
+            const renderProducts = () => {
+                productList.innerHTML = '';
+
+                const searchTerm = currentSearchTerm.toLowerCase();
+                const filteredProducts = products.filter(product => {
+                    const categoryMatch = currentFilterCategory === 'Todos' || product.category === currentFilterCategory;
+                    const searchMatch = product.name.toLowerCase().includes(searchTerm);
+                    return categoryMatch && searchMatch;
+                });
+
+                if (filteredProducts.length === 0) {
+                    productList.innerHTML = `<p class="text-center text-gray-500 col-span-full mt-8">Nenhum item encontrado para "${currentSearchTerm}" na categoria ${currentFilterCategory}.</p>`;
+                    return;
+                }
+                
+                const categoriesToDisplay = currentFilterCategory === 'Todos' 
+                    ? [...new Set(filteredProducts.map(p => p.category))]
+                    : [currentFilterCategory];
+
+                categoriesToDisplay.forEach(category => {
+                    const productsInCategory = filteredProducts.filter(p => p.category === category);
+                    if (productsInCategory.length > 0) {
+                        if (currentFilterCategory === 'Todos') {
+                             const categoryTitle = document.createElement('h2');
+                             categoryTitle.className = 'text-2xl font-bold text-gray-700 mb-4 col-span-3 md:col-span-4 lg:col-span-5 xl:col-span-6';
+                             categoryTitle.textContent = category;
+                             categoryTitle.id = `category-${category}`;
+                             productList.appendChild(categoryTitle);
+                        }
+
+                        productsInCategory.forEach(product => {
+                            const productCard = document.createElement('div');
+                            productCard.className = 'bg-white rounded-xl shadow-md overflow-hidden transform hover:scale-105 transition-transform duration-300 flex flex-col';
+                            let priceDisplay = '';
+                            let canBeAdded = true;
+
+                            if (product.price === 0) {
+                                 priceDisplay = `<span class="text-sm text-gray-500">Consulte</span>`;
+                                 canBeAdded = false;
+                            } else if (product.price) {
+                                priceDisplay = formatCurrency(product.price);
+                            } else if (product.variants) {
+                                priceDisplay = `A partir de ${formatCurrency(product.variants[0].price)}`;
+                            } else if (product.multiStepVariants) {
+                                priceDisplay = `A partir de ${formatCurrency(product.multiStepVariants.options.size[0].price)}`;
+                            }
+                            
+                            const buttonHtml = canBeAdded ? `
+                                <button data-id="${product.id}" class="add-to-cart-btn bg-gray-800 text-white rounded-full h-10 w-10 flex items-center justify-center hover:bg-orange-500">
+                                    <i class="fa-solid fa-plus"></i>
+                                </button>` : `
+                                <div class="bg-gray-200 text-gray-400 rounded-full h-10 w-10 flex items-center justify-center cursor-not-allowed">
+                                    <i class="fa-solid fa-phone"></i>
+                                </div>`;
+
+                            productCard.innerHTML = `
+                                <img src="${product.image}" alt="${product.name}" class="w-full h-40 object-cover">
+                                <div class="p-4 flex flex-col flex-grow">
+                                    <h3 class="text-lg font-semibold text-gray-800 flex-grow">${product.name}</h3>
+                                    <div class="flex justify-between items-center mt-4">
+                                        <p class="text-lg font-bold text-orange-500">${priceDisplay}</p>
+                                        ${buttonHtml}
+                                    </div>
+                                </div>
+                            `;
+                            productList.appendChild(productCard);
+                        });
+                    }
+                });
+            };
+
+            const updateCart = () => {
+                cartItems.innerHTML = '';
+                if (cart.length === 0) {
+                    cartEmptyMessage.style.display = 'flex';
+                    cartTotalSection.style.display = 'none';
+                } else {
+                    cartEmptyMessage.style.display = 'none';
+                    cartTotalSection.style.display = 'block';
+                    cart.forEach(item => {
+                        const cartItem = document.createElement('div');
+                        cartItem.className = 'flex justify-between items-center mb-4 fade-in';
+                        cartItem.innerHTML = `
+                            <div>
+                                <p class="font-semibold">${item.name}</p>
+                                <p class="text-sm text-gray-500">${formatCurrency(item.price)}</p>
+                            </div>
+                            <div class="flex items-center space-x-3">
+                                <button data-id="${item.cartId}" class="quantity-change-btn bg-gray-200 rounded-full h-6 w-6 flex items-center justify-center">-</button>
+                                <span>${item.quantity}</span>
+                                <button data-id="${item.cartId}" class="quantity-change-btn bg-gray-200 rounded-full h-6 w-6 flex items-center justify-center">+</button>
+                            </div>
+                        `;
+                        cartItems.appendChild(cartItem);
+                    });
+                }
+                
+                const total = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
+                cartTotal.textContent = formatCurrency(total);
+                
+                const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
+                cartCountBadge.textContent = totalItems;
+                cartCountBadge.style.display = totalItems > 0 ? 'flex' : 'none';
+            };
+
+            const addToCart = (item) => {
+                const existingItem = cart.find(cartItem => cartItem.cartId === item.cartId);
+                if (existingItem) {
+                    existingItem.quantity++;
+                } else {
+                    cart.push({ ...item, quantity: 1 });
+                }
+                updateCart();
+            };
+
+            const changeQuantity = (cartId, change) => {
+                const cartItem = cart.find(item => item.cartId === cartId);
+                if (cartItem) {
+                    cartItem.quantity += change;
+                    if (cartItem.quantity <= 0) {
+                        cart = cart.filter(item => item.cartId !== cartId);
+                    }
+                }
+                updateCart();
+            };
+
+            const openVariationsModal = (product) => {
+                variationState = { product, type: 'single' };
+                variationProductName.textContent = product.name;
+                variationsList.innerHTML = '';
+                product.variants.forEach((variant, index) => {
+                    const description = getVariantDescription(variant.name);
+                    const descriptionHTML = description ? `<span class="text-xs text-gray-500 ml-3 block">${description}</span>` : '';
+
+                    variationsList.insertAdjacentHTML('beforeend', `
+                        <label class="flex items-center p-3 border rounded-lg cursor-pointer hover:bg-gray-50">
+                            <input type="radio" name="variation" value="${variant.id}" class="h-4 w-4 text-orange-600" ${index === 0 ? 'checked' : ''}>
+                            <div class="ml-3 flex-1">
+                                <span class="text-gray-700">${variant.name}</span>
+                                ${descriptionHTML}
+                            </div>
+                            <span class="font-semibold text-gray-800">${formatCurrency(variant.price)}</span>
+                        </label>
+                    `);
+                });
+                variationButtons.innerHTML = `
+                    <button type="button" id="cancel-variation-btn" class="w-1/2 bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-3 rounded-lg">Cancelar</button>
+                    <button type="button" id="confirm-variation-btn" class="w-1/2 bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 rounded-lg">Confirmar</button>
+                `;
+                variationsModal.style.display = 'flex';
+            };
+
+            const openMultiStepModal = (product, step = 0, selections = {}) => {
+                variationState = { product, type: 'multi', step, selections };
+                const currentStepInfo = product.multiStepVariants.steps[step];
+                const options = product.multiStepVariants.options[currentStepInfo.type];
+
+                variationProductName.textContent = currentStepInfo.title;
+                variationsList.innerHTML = '';
+                options.forEach((option, index) => {
+                    const priceInfo = option.price ? `<span class="font-semibold text-gray-800">${formatCurrency(option.price)}</span>` : '';
+                    variationsList.insertAdjacentHTML('beforeend', `
+                        <label class="flex items-center p-3 border rounded-lg cursor-pointer hover:bg-gray-50">
+                            <input type="radio" name="variation" value="${option.id}" class="h-4 w-4 text-orange-600" ${index === 0 ? 'checked' : ''}>
+                            <span class="ml-3 flex-1 text-gray-700">${option.name}</span>
+                            ${priceInfo}
+                        </label>
+                    `);
+                });
+                
+                const isLastStep = step === product.multiStepVariants.steps.length - 1;
+                let buttonsHTML = `<button type="button" id="cancel-variation-btn" class="w-1/2 bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-3 rounded-lg">Cancelar</button>`;
+                if (isLastStep) {
+                    buttonsHTML += `<button type="button" id="confirm-variation-btn" class="w-1/2 bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 rounded-lg">Confirmar</button>`;
+                } else {
+                    buttonsHTML += `<button type="button" id="next-variation-btn" class="w-1/2 bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 rounded-lg">Próximo <i class="fa-solid fa-arrow-right ml-1"></i></button>`;
+                }
+                variationButtons.innerHTML = buttonsHTML;
+                variationsModal.style.display = 'flex';
+            };
+            
+            const handleVariationSubmission = () => {
+                const { product, type, step, selections } = variationState;
+                const selectedId = document.querySelector('input[name="variation"]:checked').value;
+
+                if (type === 'single') {
+                    const selectedVariant = product.variants.find(v => v.id === selectedId);
+                    addToCart({
+                        cartId: selectedVariant.id,
+                        name: `${product.name} (${selectedVariant.name})`,
+                        price: selectedVariant.price
+                    });
+                    variationsModal.style.display = 'none';
+                } else if (type === 'multi') {
+                    const currentStepInfo = product.multiStepVariants.steps[step];
+                    const options = product.multiStepVariants.options[currentStepInfo.type];
+                    const selection = options.find(o => o.id === selectedId);
+                    
+                    const newSelections = { ...selections, [currentStepInfo.type]: selection };
+                    const isLastStep = step === product.multiStepVariants.steps.length - 1;
+
+                    if (isLastStep) {
+                        const finalName = `${product.name} (${newSelections.flavor.name}, ${newSelections.size.name})`;
+                        const finalCartId = `${product.id}-${newSelections.flavor.id}-${newSelections.size.id}`;
+                        addToCart({
+                            cartId: finalCartId,
+                            name: finalName,
+                            price: newSelections.size.price
+                        });
+                        variationsModal.style.display = 'none';
+                    } else {
+                        openMultiStepModal(product, step + 1, newSelections);
+                    }
+                }
+            };
+
+            const generateWhatsAppMessage = () => {
+                const customerName = document.getElementById('customer-name').value;
+                const customerPhone = document.getElementById('customer-phone').value;
+                const orderType = document.querySelector('input[name="order-type"]:checked').value;
+                const notes = document.getElementById('order-notes').value;
+                const paymentMethod = document.querySelector('input[name="payment-method"]:checked').value;
+                const now = new Date();
+                const dateTimeString = now.toLocaleString('pt-BR', {
+                    day: '2-digit',
+                    month: '2-digit',
+                    year: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+
+
+                let message = `*=== NOVO PEDIDO ===*\n`;
+                message += `*Data/Hora:* ${dateTimeString}\n\n`;
+                message += `*Cliente:* ${customerName}\n`;
+                if (customerPhone) message += `*Telefone:* ${customerPhone}\n`;
+                message += `*Tipo:* ${orderType === 'local' ? 'Consumo no Local' : 'Para Entrega/Retirada'}\n\n`;
+                message += `*--- ITENS DO PEDIDO ---*\n`;
+                
+                cart.forEach(item => {
+                    message += `• ${item.quantity}x ${item.name} - ${formatCurrency(item.price * item.quantity)}\n`;
+                });
+
+                const total = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
+                message += `\n*TOTAL DO PEDIDO: ${formatCurrency(total)}*\n`;
+                message += `*Forma de Pagamento:* ${paymentMethod}\n\n`;
+
+                if(notes.trim() !== '') {
+                    message += `*--- OBSERVAÇÕES ---*\n${notes.trim()}\n\n`;
+                }
+
+                message += `-----------------------------------\n`;
+                
+                return message;
+            };
+
+            const getFullProductName = (product) => {
+                if (product.variants) {
+                    return product.variants.map(v => `${product.name} (${v.name})`);
+                }
+                if (product.multiStepVariants) {
+                    const names = [];
+                    const flavors = product.multiStepVariants.options.flavor;
+                    const sizes = product.multiStepVariants.options.size;
+                    flavors.forEach(flavor => {
+                        sizes.forEach(size => {
+                            names.push(`${product.name} (${flavor.name}, ${size.name})`);
+                        });
+                    });
+                    return names;
+                }
+                return [product.name];
+            };
+            
+            const callGeminiAPI = async (prompt) => {
+                const apiKey = ""; 
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+                const payload = { contents: [{ parts: [{ text: prompt }] }] };
+
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!response.ok) {
+                    throw new Error(`API Error: ${response.statusText}`);
+                }
+                const result = await response.json();
+                if (result.candidates && result.candidates.length > 0 && result.candidates[0].content.parts.length > 0) {
+                    return result.candidates[0].content.parts[0].text.trim();
+                }
+                return null;
+            };
+
+            const displaySuggestionModal = (itemName, errorMessage = null) => {
+                const textElement = document.getElementById('suggestion-result-text');
+                const buttonsElement = document.getElementById('suggestion-result-buttons');
+                buttonsElement.innerHTML = ''; 
+
+                if (errorMessage) {
+                    textElement.textContent = errorMessage;
+                    const closeBtn = document.createElement('button');
+                    closeBtn.className = 'w-full bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-2 rounded-lg';
+                    closeBtn.textContent = 'Fechar';
+                    closeBtn.onclick = () => suggestionResultModal.style.display = 'none';
+                    buttonsElement.appendChild(closeBtn);
+                } else {
+                    textElement.innerHTML = `O Chef sugere: <br><strong class="text-orange-600">${itemName}</strong>`;
+                    
+                    const noBtn = document.createElement('button');
+                    noBtn.className = 'w-1/2 bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-2 rounded-lg';
+                    noBtn.textContent = 'Não, obrigado';
+                    noBtn.onclick = () => suggestionResultModal.style.display = 'none';
+
+                    const yesBtn = document.createElement('button');
+                    yesBtn.className = 'w-1/2 bg-green-500 hover:bg-green-600 text-white font-bold py-2 rounded-lg';
+                    yesBtn.textContent = 'Adicionar';
+                    yesBtn.onclick = () => {
+                        addSuggestedItemToCart(itemName);
+                        suggestionResultModal.style.display = 'none';
+                    };
+
+                    buttonsElement.appendChild(noBtn);
+                    buttonsElement.appendChild(yesBtn);
+                }
+                suggestionResultModal.style.display = 'flex';
+            };
+            
+            const addSuggestedItemToCart = (itemName) => {
+                for (const product of products) {
+                    if (product.price && product.name === itemName) {
+                        addToCart({ cartId: product.id.toString(), name: product.name, price: product.price });
+                        return;
+                    }
+                    if (product.variants) {
+                        for (const variant of product.variants) {
+                            const fullName = `${product.name} (${variant.name})`;
+                            if (fullName === itemName) {
+                                addToCart({ cartId: variant.id, name: fullName, price: variant.price });
+                                return;
+                            }
+                        }
+                    }
+                }
+                console.warn("Suggested item not found in product list:", itemName);
+            };
+            
+            const getAiHelperSuggestion = async () => {
+                aiHelperInitialState.style.display = 'none';
+                aiHelperResultState.style.display = 'block';
+                aiHelperLoadingView.style.display = 'block';
+                aiHelperSuggestionView.style.display = 'none';
+
+                let prompt;
+                const allProductNames = products.flatMap(p => getFullProductName(p)).join('\n');
+                
+                if (aiHelperState.suggestions.length > 0) {
+                    prompt = `Você é um assistente de um restaurante brasileiro especializado em churrasco chamado 'Churras Lagoinha'. Um cliente está indeciso e descreveu sua vontade como: '${aiHelperState.userInput}'. Já foram sugeridos os seguintes itens: ${aiHelperState.suggestions.join(', ')}. Sugira um item DIFERENTE dos anteriores que também combine com o desejo do cliente. Cardápio: \n${allProductNames}\n\nResponda APENAS com o nome exato de UM item do cardápio.`;
+                } else {
+                    prompt = `Você é um assistente de um restaurante brasileiro especializado em churrasco chamado 'Churras Lagoinha'. Um cliente está indeciso e descreveu sua vontade como: '${aiHelperState.userInput}'. Com base nisso e no nosso cardápio completo, sugira o item perfeito para ele. Cardápio: \n${allProductNames}\n\nResponda APENAS com o nome exato de UM item do cardápio.`;
+                }
+
+                try {
+                    const suggestedItemName = await callGeminiAPI(prompt);
+                    if (suggestedItemName) {
+                        aiHelperState.suggestions.push(suggestedItemName);
+                        displayAiHelperResult(suggestedItemName);
+                    } else {
+                        displayAiHelperResult(null, "Não consegui pensar em outra sugestão. Que tal tentar descrever seu desejo de outra forma?");
+                    }
+                } catch (error) {
+                    console.error("Error calling Gemini API for AI Helper:", error);
+                    displayAiHelperResult(null, "Ocorreu um erro ao buscar a sugestão.");
+                }
+            };
+            
+            const displayAiHelperResult = (itemName, errorMessage = null) => {
+                aiHelperLoadingView.style.display = 'none';
+                aiHelperSuggestionView.style.display = 'block';
+                
+                const textElement = document.getElementById('ai-helper-result-text');
+                const buttonsElement = document.getElementById('ai-helper-result-buttons');
+                buttonsElement.innerHTML = '';
+
+                if (errorMessage) {
+                    textElement.innerHTML = `<i class="fa-solid fa-face-sad-tear text-2xl mb-2"></i><br>${errorMessage}`;
+                    const closeBtn = document.createElement('button');
+                    closeBtn.className = 'w-full bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-2 rounded-lg';
+                    closeBtn.textContent = 'Fechar';
+                    closeBtn.onclick = () => resetAiHelperModal();
+                    buttonsElement.appendChild(closeBtn);
+                } else {
+                    textElement.innerHTML = `<strong class="text-orange-600 text-xl">${itemName}</strong>`;
+
+                    const addBtn = document.createElement('button');
+                    addBtn.className = 'w-full bg-green-500 hover:bg-green-600 text-white font-bold py-3 rounded-lg';
+                    addBtn.textContent = 'Adicionar ao Carrinho';
+                    addBtn.onclick = () => {
+                        addSuggestedItemToCart(itemName);
+                        resetAiHelperModal();
+                    };
+
+                    const anotherBtn = document.createElement('button');
+                    anotherBtn.className = 'w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 rounded-lg';
+                    anotherBtn.textContent = 'Outra Sugestão';
+                    anotherBtn.onclick = getAiHelperSuggestion;
+
+                    const closeBtn = document.createElement('button');
+                    closeBtn.className = 'w-full bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-2 rounded-lg';
+                    closeBtn.textContent = 'Fechar';
+                    closeBtn.onclick = () => resetAiHelperModal();
+
+                    buttonsElement.appendChild(addBtn);
+                    buttonsElement.appendChild(anotherBtn);
+                    buttonsElement.appendChild(closeBtn);
+                }
+            };
+            
+            const resetAiHelperModal = () => {
+                aiHelperModal.style.display = 'none';
+                aiHelperInitialState.style.display = 'block';
+                aiHelperResultState.style.display = 'none';
+                document.getElementById('ai-helper-input').value = '';
+                aiHelperState = { userInput: '', suggestions: [] };
+            };
+
+
+            // --- EVENT LISTENERS ---
+            productList.addEventListener('click', (e) => {
+                const btn = e.target.closest('.add-to-cart-btn');
+                if (!btn) return;
+
+                const id = parseInt(btn.dataset.id);
+                const product = products.find(p => p.id === id);
+
+                if (product.variants) {
+                    openVariationsModal(product);
+                } else if (product.multiStepVariants) {
+                    openMultiStepModal(product);
+                } else {
+                    addToCart({ cartId: product.id.toString(), name: product.name, price: product.price });
+                    // Animation
+                    const icon = btn.querySelector('i');
+                    icon.classList.remove('fa-plus'); icon.classList.add('fa-check');
+                    btn.classList.add('bg-green-500');
+                    setTimeout(() => {
+                        icon.classList.remove('fa-check'); icon.classList.add('fa-plus');
+                        btn.classList.remove('bg-green-500');
+                    }, 1000);
+                }
+            });
+
+            cartItems.addEventListener('click', (e) => {
+                const btn = e.target.closest('.quantity-change-btn');
+                if (btn) {
+                    changeQuantity(btn.dataset.id, btn.textContent === '+' ? 1 : -1);
+                }
+            });
+            
+            categoryFilters.addEventListener('click', (e) => {
+                const btn = e.target.closest('.filter-btn');
+                if (!btn) return;
+
+                const currentActiveBtn = categoryFilters.querySelector('.filter-btn.active');
+                if (currentActiveBtn) {
+                    currentActiveBtn.classList.remove('active');
+                }
+                
+                btn.classList.add('active');
+                
+                currentFilterCategory = btn.dataset.category;
+                renderProducts();
+            });
+            
+            searchInput.addEventListener('input', (e) => {
+                currentSearchTerm = e.target.value;
+                renderProducts();
+            });
+
+            variationButtons.addEventListener('click', (e) => {
+                const targetId = e.target.closest('button')?.id;
+                if (targetId === 'cancel-variation-btn') {
+                    variationsModal.style.display = 'none';
+                } else if (targetId === 'confirm-variation-btn' || targetId === 'next-variation-btn') {
+                    handleVariationSubmission();
+                }
+            });
+            
+            floatingCartBtn.addEventListener('click', () => { cartModal.style.display = 'flex'; });
+            aiHelperBtn.addEventListener('click', () => { aiHelperModal.style.display = 'flex'; });
+            aiHelperCancelBtn.addEventListener('click', () => resetAiHelperModal());
+            moreInfoBtn.addEventListener('click', () => { moreInfoModal.style.display = 'flex'; });
+            document.getElementById('close-more-info-btn').addEventListener('click', () => { moreInfoModal.style.display = 'none'; });
+
+            aiHelperSubmitBtn.addEventListener('click', () => {
+                const userInput = document.getElementById('ai-helper-input').value;
+                if (userInput.trim() === '') return;
+                aiHelperState.userInput = userInput;
+                getAiHelperSuggestion();
+            });
+
+            closeCartBtn.addEventListener('click', () => { cartModal.style.display = 'none'; });
+
+            checkoutBtn.addEventListener('click', () => {
+                cartModal.style.display = 'none';
+                checkoutModal.style.display = 'flex';
+            });
+            
+            suggestionBtn.addEventListener('click', async () => {
+                const promptGenerator = () => {
+                    const cartItemNames = cart.map(item => item.name).join(', ');
+                    const allProductNames = products.flatMap(p => getFullProductName(p)).join('\n');
+                    return `Você é um sommelier e chef de um restaurante brasileiro especializado em espetinhos e churrasco. Um cliente tem os seguintes itens no carrinho: ${cartItemNames}. Com base nesses itens, sugira UM item adicional do nosso cardápio para complementar perfeitamente o pedido. O item pode ser uma bebida ou um acompanhamento. Itens já no carrinho não devem ser sugeridos. Nosso cardápio completo inclui:\n${allProductNames}\n\nResponda APENAS com o nome exato de UM item do cardápio. Por exemplo: 'Heineken 600ml' ou 'Batata Frita (Grande)'.`;
+                };
+                try {
+                    const suggestion = await callGeminiAPI(promptGenerator());
+                    displaySuggestionModal(suggestion);
+                } catch(e) {
+                    displaySuggestionModal(null, "Ocorreu um erro ao buscar a sugestão.");
+                }
+            });
+            
+            document.getElementById('cancel-checkout-btn').addEventListener('click', () => { checkoutModal.style.display = 'none'; });
+            document.getElementById('close-confirmation-btn').addEventListener('click', () => { confirmationModal.style.display = 'none'; });
+            
+            allModals.forEach(modal => {
+                modal.addEventListener('click', (e) => {
+                    if (e.target === modal) {
+                        if (modal.id === 'ai-helper-modal') {
+                            resetAiHelperModal();
+                        } else {
+                            modal.style.display = 'none';
+                        }
+                    }
+                });
+            });
+
+            document.querySelector('input[name="order-type"][value="entrega"]').addEventListener('change', (e) => {
+                document.getElementById('delivery-info').style.display = e.target.checked ? 'block' : 'none';
+            });
+            document.querySelector('input[name="order-type"][value="local"]').addEventListener('change', (e) => {
+                document.getElementById('delivery-info').style.display = 'none';
+            });
+
+            document.getElementById('checkout-form').addEventListener('submit', (e) => {
+                e.preventDefault();
+                const message = generateWhatsAppMessage();
+                document.getElementById('whatsapp-message').textContent = message;
+                
+                const phoneNumber = '5562984710639';
+                const encodedMessage = encodeURIComponent(message);
+                document.getElementById('send-whatsapp-btn').href = `https://wa.me/${phoneNumber}?text=${encodedMessage}`;
+
+                checkoutModal.style.display = 'none';
+                confirmationModal.style.display = 'flex';
+            });
+            
+            // --- INITIAL RENDER ---
+            renderFilters();
+            renderProducts();
+            updateCart();
+        });
+    </script>
+</body>
+</html>
