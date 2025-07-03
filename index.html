@@ -79,8 +79,8 @@
 
 
     <main class="container mx-auto p-4">
-        <div id="product-list" class="grid grid-cols-3 gap-4 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
-            <!-- Products will be injected here -->
+        <div id="product-list-container">
+            <!-- Products will be injected here by JS -->
         </div>
     </main>
 
@@ -100,7 +100,7 @@
         <div class="bg-white rounded-xl shadow-2xl w-full max-w-md fade-in flex flex-col" style="height: 90vh; max-height: 600px;">
             <div class="p-6 flex justify-between items-center border-b">
                 <h2 class="text-2xl font-bold text-gray-800">Seu Pedido</h2>
-                <button id="close-cart-btn" class="text-2xl text-gray-500 hover:text-gray-800">&times;</button>
+                <button id="close-cart-btn" class="text-2xl text-gray-500 hover:text-gray-800">×</button>
             </div>
             <div id="cart-items" class="p-6 flex-grow overflow-y-auto custom-scrollbar"></div>
             <div id="cart-empty-message" class="text-center py-12 flex-grow flex flex-col justify-center items-center">
@@ -127,7 +127,7 @@
         <div class="bg-white rounded-xl shadow-2xl p-6 w-full max-w-md fade-in">
             <div class="flex justify-between items-center mb-4">
                 <h2 class="text-2xl font-bold text-gray-800">Sobre o Churras Lagoinha</h2>
-                <button id="close-more-info-btn" class="text-2xl text-gray-500 hover:text-gray-800">&times;</button>
+                <button id="close-more-info-btn" class="text-2xl text-gray-500 hover:text-gray-800">×</button>
             </div>
             <div class="text-gray-700 space-y-4">
                 <p>Tradicional desde 2005, o Churras Lagoinha é o point ideal para jantar no bairro ou pedir em casa. Oferecemos espetinhos variados na brasa, jantinhas completas, caldos, porções e muito mais em um ambiente familiar e descontraído.</p>
@@ -556,7 +556,7 @@
             let currentSearchTerm = '';
 
             // --- DOM ELEMENTS ---
-            const productList = document.getElementById('product-list');
+            const productListContainer = document.getElementById('product-list-container');
             const categoryFilters = document.getElementById('category-filters');
             const searchInput = document.getElementById('search-input');
             const cartItems = document.getElementById('cart-items');
@@ -620,7 +620,7 @@
             };
 
             const renderProducts = () => {
-                productList.innerHTML = '';
+                productListContainer.innerHTML = '';
 
                 const searchTerm = currentSearchTerm.toLowerCase();
                 const filteredProducts = products.filter(product => {
@@ -630,24 +630,26 @@
                 });
 
                 if (filteredProducts.length === 0) {
-                    productList.innerHTML = `<p class="text-center text-gray-500 col-span-full mt-8">Nenhum item encontrado para "${currentSearchTerm}" na categoria ${currentFilterCategory}.</p>`;
+                    productListContainer.innerHTML = `<p class="text-center text-gray-500 col-span-full mt-8">Nenhum item encontrado para "${currentSearchTerm}" na categoria ${currentFilterCategory}.</p>`;
                     return;
                 }
                 
                 const categoriesToDisplay = currentFilterCategory === 'Todos' 
-                    ? [...new Set(filteredProducts.map(p => p.category))]
+                    ? ['Carnes', 'Porções', 'Acompanhamentos', 'Bebidas']
                     : [currentFilterCategory];
 
                 categoriesToDisplay.forEach(category => {
                     const productsInCategory = filteredProducts.filter(p => p.category === category);
                     if (productsInCategory.length > 0) {
-                        if (currentFilterCategory === 'Todos') {
-                             const categoryTitle = document.createElement('h2');
-                             categoryTitle.className = 'text-2xl font-bold text-gray-700 mb-4 col-span-3 md:col-span-4 lg:col-span-5 xl:col-span-6';
-                             categoryTitle.textContent = category;
-                             categoryTitle.id = `category-${category}`;
-                             productList.appendChild(categoryTitle);
-                        }
+                         const categoryTitle = document.createElement('h2');
+                         categoryTitle.className = 'text-2xl font-bold text-gray-700 mb-4 col-span-full';
+                         categoryTitle.textContent = category;
+                         categoryTitle.id = `category-${category}`;
+                         productListContainer.appendChild(categoryTitle);
+                         
+                         const productGrid = document.createElement('div');
+                         productGrid.className = 'grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 mb-8';
+                         productListContainer.appendChild(productGrid);
 
                         productsInCategory.forEach(product => {
                             const productCard = document.createElement('div');
@@ -667,24 +669,24 @@
                             }
                             
                             const buttonHtml = canBeAdded ? `
-                                <button data-id="${product.id}" class="add-to-cart-btn bg-gray-800 text-white rounded-full h-10 w-10 flex items-center justify-center hover:bg-orange-500">
-                                    <i class="fa-solid fa-plus"></i>
+                                <button data-id="${product.id}" class="add-to-cart-btn bg-gray-800 text-white rounded-full h-8 w-8 flex items-center justify-center hover:bg-orange-500">
+                                    <i class="fa-solid fa-plus text-xs"></i>
                                 </button>` : `
-                                <div class="bg-gray-200 text-gray-400 rounded-full h-10 w-10 flex items-center justify-center cursor-not-allowed">
-                                    <i class="fa-solid fa-phone"></i>
+                                <div class="bg-gray-200 text-gray-400 rounded-full h-8 w-8 flex items-center justify-center cursor-not-allowed">
+                                    <i class="fa-solid fa-phone text-xs"></i>
                                 </div>`;
 
                             productCard.innerHTML = `
-                                <img src="${product.image}" alt="${product.name}" class="w-full h-40 object-cover">
-                                <div class="p-4 flex flex-col flex-grow">
-                                    <h3 class="text-lg font-semibold text-gray-800 flex-grow">${product.name}</h3>
-                                    <div class="flex justify-between items-center mt-4">
-                                        <p class="text-lg font-bold text-orange-500">${priceDisplay}</p>
+                                <img src="${product.image}" alt="${product.name}" class="w-full h-24 object-cover">
+                                <div class="p-2 flex flex-col flex-grow">
+                                    <h3 class="text-sm font-semibold text-gray-800 flex-grow leading-tight">${product.name}</h3>
+                                    <div class="flex justify-between items-center mt-2">
+                                        <p class="text-sm font-bold text-orange-500">${priceDisplay}</p>
                                         ${buttonHtml}
                                     </div>
                                 </div>
                             `;
-                            productList.appendChild(productCard);
+                            productGrid.appendChild(productCard);
                         });
                     }
                 });
@@ -1048,7 +1050,7 @@
 
 
             // --- EVENT LISTENERS ---
-            productList.addEventListener('click', (e) => {
+            productListContainer.addEventListener('click', (e) => {
                 const btn = e.target.closest('.add-to-cart-btn');
                 if (!btn) return;
 
